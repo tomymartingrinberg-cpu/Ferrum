@@ -1,5 +1,7 @@
 # Ferrum
 
+(Tengo 11 años y lo hice con Claude Code, cualquier fallo, ponganlo en el GitHub o por mail al tomy.martin.grinberg@gmail.com. Esto esta hecho sin fines de lucro)
+
 **Syntax: C | Safety: compile-time checked | Ecosystem: C++**
 
 Ferrum es un lenguaje de programación de sistemas que toma la sintaxis de C y le agrega verificaciones de seguridad de memoria en tiempo de compilación. Si el programa compila, no hay use-after-free, double free, ni dangling pointers.
