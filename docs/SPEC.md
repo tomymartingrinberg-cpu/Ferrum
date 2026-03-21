@@ -2,55 +2,57 @@
 
 > **Syntax: C | Safety: compile-time checked | Ecosystem: C++**
 
-Ferrum es un lenguaje de programación de sistemas que combina la sintaxis familiar de C con verificaciones de seguridad de memoria en tiempo de compilación, manteniendo interoperabilidad total con el ecosistema de C y C++.
+Ferrum is a systems programming language that combines the familiar syntax of C with compile-time memory safety checks, while maintaining full interoperability with the C and C++ ecosystem.
+
+> Also available in: [Español](SPEC.es.md)
 
 ---
 
-## Tabla de Contenidos
+## Table of Contents
 
-1. [Filosofía de Diseño](#1-filosofía-de-diseño)
-2. [Relación con C](#2-relación-con-c)
-3. [Variables y Tipos](#3-variables-y-tipos)
-4. [Punteros y Referencias](#4-punteros-y-referencias)
-5. [Ownership (Propiedad)](#5-ownership-propiedad)
+1. [Design Philosophy](#1-design-philosophy)
+2. [Relationship with C](#2-relationship-with-c)
+3. [Variables and Types](#3-variables-and-types)
+4. [Pointers and References](#4-pointers-and-references)
+5. [Ownership](#5-ownership)
 6. [Borrow Checker](#6-borrow-checker)
-7. [Lifetimes (Tiempos de Vida)](#7-lifetimes-tiempos-de-vida)
+7. [Lifetimes](#7-lifetimes)
 8. [Unsafe](#8-unsafe)
-9. [Genéricos](#9-genéricos)
+9. [Generics](#9-generics)
 10. [Structs](#10-structs)
-11. [Funciones](#11-funciones)
-12. [Control de Flujo](#12-control-de-flujo)
-13. [Importaciones e Interoperabilidad con C/C++](#13-importaciones-e-interoperabilidad-con-cc)
-14. [Pipeline del Compilador](#14-pipeline-del-compilador)
-15. [Errores del Compilador](#15-errores-del-compilador)
-16. [Comparación C vs Ferrum](#16-comparación-c-vs-ferrum)
+11. [Functions](#11-functions)
+12. [Control Flow](#12-control-flow)
+13. [Imports and C/C++ Interoperability](#13-imports-and-cc-interoperability)
+14. [Compiler Pipeline](#14-compiler-pipeline)
+15. [Compiler Errors](#15-compiler-errors)
+16. [C vs Ferrum Comparison](#16-c-vs-ferrum-comparison)
 
 ---
 
-## 1. Filosofía de Diseño
+## 1. Design Philosophy
 
-Ferrum parte de una pregunta simple: **¿qué pasaría si C tuviera un borrow checker integrado?**
+Ferrum starts from a simple question: **what if C had a built-in borrow checker?**
 
-### Principios fundamentales
+### Core principles
 
-| # | Principio |
+| # | Principle |
 |---|-----------|
-| 1 | **Si compila, es memory-safe** — no hay undefined behavior por violaciones de ownership |
-| 2 | **C válido es Ferrum válido** — código C existente funciona sin modificaciones |
-| 3 | **Cero overhead en runtime** — todas las verificaciones son en tiempo de compilación |
-| 4 | **Sin garbage collector** — el programador controla la memoria; el compilador la libera |
-| 5 | **C++ es ciudadano de primera** — headers, STL y ABIs de C++ funcionan directo |
+| 1 | **If it compiles, it is memory-safe** — no undefined behavior from ownership violations |
+| 2 | **Valid C is valid Ferrum** — existing C code works without modification |
+| 3 | **Zero runtime overhead** — all checks happen at compile time |
+| 4 | **No garbage collector** — the programmer controls memory; the compiler frees it |
+| 5 | **C++ is a first-class citizen** — C++ headers, STL, and ABIs work directly |
 
-### Lo que Ferrum agrega a C
+### What Ferrum adds to C
 
 ```
-C puro                          Ferrum
+Pure C                          Ferrum
 ──────────────────────────────────────────────────────────────
 int* p = malloc(sizeof(int));   int* p = new int(42);
-*p = 42;                        // free() insertado automaticamente
-free(p);                        // al salir del scope
+*p = 42;                        // free() inserted automatically
+free(p);                        // when leaving scope
 
-// Sin proteccion:              // Protegido en compilacion:
+// No protection:               // Protected at compile time:
 int* q = p;                     int* q = move(p);
 free(p);  // double free!       free(p);  // ERROR: p was moved
 *p = 1;   // use-after-free!    *p = 1;   // ERROR: use of moved value
@@ -58,28 +60,28 @@ free(p);  // double free!       free(p);  // ERROR: p was moved
 
 ---
 
-## 2. Relación con C
+## 2. Relationship with C
 
-### C es un subconjunto de Ferrum
+### C is a subset of Ferrum
 
-Todo programa C válido es también un programa Ferrum válido. La única diferencia de sintaxis es que C usa `#include` y Ferrum usa `import`, pero **ambas formas son aceptadas**:
+Every valid C program is also a valid Ferrum program. The only syntactic difference is that C uses `#include` and Ferrum uses `import`, but **both forms are accepted**:
 
 ```c
-// Estilo C — funciona en Ferrum
+// C style — works in Ferrum
 #include <stdio.h>
 #include <stdlib.h>
 
-// Estilo Ferrum — equivalente exacto
+// Ferrum style — exact equivalent
 import <stdio.h>;
 import <stdlib.h>;
 ```
 
-### Qué hace Ferrum con código C
+### What Ferrum does with C code
 
-Ferrum no rechaza el código C — lo **analiza y agrega seguridad encima**:
+Ferrum does not reject C code — it **analyzes it and adds safety on top**:
 
 ```c
-// Esto es C puro — Ferrum lo acepta
+// This is pure C — Ferrum accepts it
 int factorial(int n) {
     if (n <= 1) return 1;
     return n * factorial(n - 1);
@@ -94,145 +96,145 @@ int main() {
 }
 ```
 
-Ferrum ejecuta el **borrow checker y el type checker** encima de este código. Si hay violaciones de memoria, las detecta. Si no las hay, compila normal.
+Ferrum runs the **borrow checker and type checker** on top of this code. If there are memory violations, it catches them. If not, it compiles normally.
 
-### Lo que Ferrum detecta que C no detecta
+### What Ferrum catches that C does not
 
 | Bug | C | Ferrum |
 |-----|---|--------|
-| Use-after-free | Crash en runtime | `error[E0505]` en compilación |
-| Double free | Crash en runtime | `error[E0382]` en compilación |
-| Use-after-move | Comportamiento undefined | `error[E0382]` en compilación |
-| Dangling borrow | Acceso a memoria inválida | `error[E0597]` en compilación |
-| Mutación con borrow activo | Data race en runtime | `error[E0596]` en compilación |
-| Raw pointer fuera de unsafe | Sin protección | `error[E0133]` en compilación |
+| Use-after-free | Runtime crash | `error[E0505]` at compile time |
+| Double free | Runtime crash | `error[E0382]` at compile time |
+| Use-after-move | Undefined behavior | `error[E0382]` at compile time |
+| Dangling borrow | Invalid memory access | `error[E0597]` at compile time |
+| Mutation with active borrow | Runtime data race | `error[E0596]` at compile time |
+| Raw pointer outside unsafe | No protection | `error[E0133]` at compile time |
 
 ---
 
-## 3. Variables y Tipos
+## 3. Variables and Types
 
-### Tipos primitivos
+### Primitive types
 
-| Tipo Ferrum | Equivalente C | Tamaño | Descripción |
-|-------------|---------------|--------|-------------|
-| `int`       | `int`         | 32-bit | Entero con signo |
-| `float`     | `double`      | 64-bit | Punto flotante |
-| `char`      | `char`        | 8-bit  | Carácter / byte |
-| `bool`      | `_Bool`       | 1-bit  | Booleano |
-| `void`      | `void`        | —      | Sin valor |
+| Ferrum type | C equivalent | Size  | Description |
+|-------------|--------------|-------|-------------|
+| `int`       | `int`        | 32-bit | Signed integer |
+| `float`     | `double`     | 64-bit | Floating point |
+| `char`      | `char`       | 8-bit  | Character / byte |
+| `bool`      | `_Bool`      | 1-bit  | Boolean |
+| `void`      | `void`       | —      | No value |
 
-### Declaración de variables
+### Variable declarations
 
 ```c
-// Con tipo explícito
+// Explicit type
 int x = 42;
 float pi = 3.14;
-bool activo = true;
-char letra = 'A';
+bool active = true;
+char letter = 'A';
 
-// Sin inicializar (valor indefinido — igual que C)
-int contador;
+// Uninitialized (undefined value — same as C)
+int counter;
 ```
 
-### Variables en el stack vs heap
+### Stack vs heap variables
 
 ```c
-int x = 10;          // stack — se libera al salir del scope automáticamente
-int* p = new int(10); // heap  — Ferrum inserta free() al salir del scope
+int x = 10;           // stack — freed automatically when leaving scope
+int* p = new int(10); // heap  — Ferrum inserts free() when leaving scope
 ```
 
 ---
 
-## 4. Punteros y Referencias
+## 4. Pointers and References
 
-Ferrum tiene cuatro tipos de punteros, cada uno con semántica distinta:
+Ferrum has four pointer types, each with distinct semantics:
 
-### Tabla de punteros
+### Pointer table
 
-| Sintaxis        | Nombre           | Semántica                                        |
-|-----------------|------------------|--------------------------------------------------|
-| `int* p`        | Owning pointer   | p es el dueño — se libera cuando p sale de scope |
-| `int& p`        | Borrow inmutable | lectura — múltiples borrows simultáneos OK       |
-| `int&mut p`     | Borrow mutable   | lectura+escritura — solo uno a la vez            |
-| `int* unsafe p` | Raw pointer      | sin verificación — solo dentro de `unsafe {}`   |
+| Syntax          | Name             | Semantics                                          |
+|-----------------|------------------|----------------------------------------------------|
+| `int* p`        | Owning pointer   | p is the owner — freed when p goes out of scope   |
+| `int& p`        | Immutable borrow | read-only — multiple simultaneous borrows OK       |
+| `int&mut p`     | Mutable borrow   | read+write — only one at a time                    |
+| `int* unsafe p` | Raw pointer      | no checking — only inside `unsafe {}`              |
 
-### Ejemplos
+### Examples
 
 ```c
 int x = 42;
 
-// Borrow inmutable — no transfiere ownership, solo lee
-int& leer_x = &x;
-printf("%d\n", *leer_x);   // OK
+// Immutable borrow — does not transfer ownership, read only
+int& read_x = &x;
+printf("%d\n", *read_x);   // OK
 
-// Borrow mutable — puede escribir, pero bloquea otros borrows
-int&mut editar_x = &mut x;
-*editar_x = 100;            // OK
+// Mutable borrow — can write, but blocks other borrows
+int&mut edit_x = &mut x;
+*edit_x = 100;              // OK
 
 // Owning pointer (heap)
-int* p = new int(99);       // p es dueño de la memoria
-// ...al salir del scope, free(p) se inserta automáticamente
+int* p = new int(99);       // p owns the memory
+// ...when leaving scope, free(p) is inserted automatically
 
-// Raw pointer — solo en unsafe
+// Raw pointer — only inside unsafe
 unsafe {
-    int* unsafe raw = &x;   // sin protección del borrow checker
+    int* unsafe raw = &x;   // no borrow checker protection
 }
 ```
 
 ---
 
-## 5. Ownership (Propiedad)
+## 5. Ownership
 
-### Reglas de ownership
+### Ownership rules
 
-1. **Cada valor tiene exactamente un dueño** en todo momento
-2. **Cuando el dueño sale de scope, el valor se libera** (free automático para heap)
-3. **El ownership se transfiere con `move()`** — el original queda inválido
+1. **Every value has exactly one owner** at all times
+2. **When the owner goes out of scope, the value is freed** (automatic free for heap)
+3. **Ownership is transferred with `move()`** — the original becomes invalid
 
 ### Move semantics
 
 ```c
-int* a = new int(100);    // a es el dueño
-int* b = move(a);         // b toma el ownership — a queda inválido
+int* a = new int(100);    // a is the owner
+int* b = move(a);         // b takes ownership — a is now invalid
 
-printf("%d\n", *b);       // OK — b es el dueño
+printf("%d\n", *b);       // OK — b is the owner
 printf("%d\n", *a);       // ERROR[E0382]: use of moved value 'a'
-                          // El compilador rechaza esto en compilación
+                          // The compiler rejects this at compile time
 ```
 
-### Por qué esto importa (vs C)
+### Why this matters (vs C)
 
 ```c
-// En C — esto compila y explota en runtime:
+// In C — this compiles and crashes at runtime:
 int* p = malloc(sizeof(int));
 *p = 42;
-int* q = p;     // q y p apuntan al mismo lugar
-free(p);        // liberamos la memoria
-free(q);        // DOUBLE FREE — crash o corrupción de memoria
+int* q = p;     // q and p point to the same location
+free(p);        // free the memory
+free(q);        // DOUBLE FREE — crash or memory corruption
 
-// En Ferrum — el compilador lo rechaza:
+// In Ferrum — the compiler rejects it:
 int* p = new int(42);
-int* q = move(p);   // p queda inválido
-// free(p) ya no ocurre — p fue movido
-// free(q) ocurre automáticamente al salir del scope
+int* q = move(p);   // p is now invalid
+// free(p) no longer happens — p was moved
+// free(q) happens automatically when leaving scope
 ```
 
-### Scope y free automático
+### Scope and automatic free
 
 ```c
 int main() {
-    // scope externo
+    // outer scope
     int* a = new int(1);
 
     {
-        // scope interno
+        // inner scope
         int* b = new int(2);
         printf("%d\n", *b);
-        // ← free(b) insertado aquí automáticamente
+        // <- free(b) inserted here automatically
     }
 
     printf("%d\n", *a);
-    // ← free(a) insertado aquí automáticamente
+    // <- free(a) inserted here automatically
     return 0;
 }
 ```
@@ -241,259 +243,259 @@ int main() {
 
 ## 6. Borrow Checker
 
-El borrow checker es el motor de seguridad de Ferrum. Verifica en tiempo de compilación que no haya violaciones de memoria.
+The borrow checker is Ferrum's safety engine. It verifies at compile time that there are no memory violations.
 
-### Reglas
+### Rules
 
-| Regla | Descripción |
-|-------|-------------|
-| **Una lectura o una escritura** | Múltiples `&` simultáneos OK. Un `&mut` bloquea todos los demás. |
-| **No usar después de mover** | Tras `move(x)`, `x` es inválido hasta reasignación. |
-| **No prestar lo que no existe** | Un borrow no puede vivir más que el valor que presta. |
-| **No mutar mientras hay borrows** | Si existe un `&x`, no se puede modificar `x`. |
+| Rule | Description |
+|------|-------------|
+| **One reader or one writer** | Multiple `&` at the same time OK. One `&mut` blocks all others. |
+| **No use after move** | After `move(x)`, `x` is invalid until reassigned. |
+| **No outliving borrow** | A borrow cannot live longer than the value it borrows from. |
+| **No mutation while borrowed** | If `&x` exists, `x` cannot be modified. |
 
-### Ejemplos de errores que detecta
+### Examples of errors caught
 
 ```c
-// ERROR: dos borrows mutables simultáneos
+// ERROR: two simultaneous mutable borrows
 int x = 10;
 int&mut a = &mut x;
 int&mut b = &mut x;    // error[E0502]: cannot borrow 'x' as mutable more than once
 
-// ERROR: borrow mutable con borrow inmutable activo
+// ERROR: mutable borrow with active immutable borrow
 int x = 10;
-int& leer = &x;
-int&mut editar = &mut x;  // error[E0502]: cannot borrow 'x' as mutable
-                           //              because it is also borrowed as immutable
+int& read = &x;
+int&mut edit = &mut x;  // error[E0502]: cannot borrow 'x' as mutable
+                         //              because it is also borrowed as immutable
 
-// ERROR: mutación mientras hay borrow
+// ERROR: mutation while borrowed
 int x = 10;
 int& ref_x = &x;
 x = 20;               // error[E0596]: cannot assign to 'x' because it is borrowed
 
-// OK: múltiples borrows inmutables
+// OK: multiple immutable borrows
 int x = 10;
 int& a = &x;
 int& b = &x;
-int& c = &x;          // perfectamente válido — solo lectura
+int& c = &x;          // perfectly valid — read only
 ```
 
 ---
 
-## 7. Lifetimes (Tiempos de Vida)
+## 7. Lifetimes
 
-Los lifetimes permiten anotar explícitamente cuánto tiempo vive un borrow. Ferrum los infiere automáticamente en la mayoría de los casos.
+Lifetimes allow explicitly annotating how long a borrow lives. Ferrum infers them automatically in most cases.
 
-### Sintaxis
+### Syntax
 
 ```c
-// Anotación explícita de lifetime
-int& 'a ref = &valor;    // ref tiene lifetime 'a
+// Explicit lifetime annotation
+int& 'a ref = &value;    // ref has lifetime 'a
 
-// En parámetros de función
-int& 'a devolver_mayor(int& 'a x, int& 'a y) {
+// In function parameters
+int& 'a return_larger(int& 'a x, int& 'a y) {
     if (*x > *y) return x;
     return y;
 }
 ```
 
-### Lifetime implícito (el caso común)
+### Implicit lifetime (the common case)
 
 ```c
-// Ferrum infiere los lifetimes automáticamente
+// Ferrum infers lifetimes automatically
 int x = 42;
-int& ref_x = &x;     // lifetime inferido: ref_x vive tanto como x
+int& ref_x = &x;     // inferred lifetime: ref_x lives as long as x
 printf("%d\n", *ref_x);  // OK
-// ref_x sale de scope antes que x — todo bien
+// ref_x goes out of scope before x — all good
 ```
 
-### Error de dangling borrow
+### Dangling borrow error
 
 ```c
-// Ferrum detecta esto:
-int& obtener_ref() {
+// Ferrum catches this:
+int& get_ref() {
     int local = 42;
     int& ref = &local;
     return ref;        // error[E0597]: 'ref' borrows 'local' which is dropped here
 }
-// local se destruye al salir de la función — ref quedaría colgando
+// local is destroyed when the function returns — ref would be dangling
 ```
 
 ---
 
 ## 8. Unsafe
 
-El bloque `unsafe` permite operaciones que el borrow checker no puede verificar estáticamente. Es el escape hatch para código de bajo nivel.
+The `unsafe` block allows operations that the borrow checker cannot verify statically. It is the escape hatch for low-level code.
 
-### Qué requiere unsafe
+### What requires unsafe
 
-- Declarar punteros raw (`int* unsafe p`)
-- Desreferenciar punteros raw
-- Interoperar con código C que usa punteros sin anotar
+- Declaring raw pointers (`int* unsafe p`)
+- Dereferencing raw pointers
+- Interoperating with C code that uses unannotated pointers
 
-### Sintaxis
+### Syntax
 
 ```c
 int x = 42;
 
-// FUERA de unsafe — el compilador protege:
+// OUTSIDE unsafe — the compiler protects:
 int* unsafe bad = &x;   // error[E0133]: unsafe pointer can only be declared
                          //              inside an unsafe block
 
-// DENTRO de unsafe — permitido explícitamente:
+// INSIDE unsafe — explicitly allowed:
 unsafe {
     int* unsafe raw = &x;
-    *raw = 100;             // OK dentro de unsafe
+    *raw = 100;             // OK inside unsafe
     printf("%d\n", *raw);   // OK
 }
 ```
 
-### Por qué existe unsafe
+### Why unsafe exists
 
-El 95% del código puede ser safe. El 5% que necesita operaciones de bajo nivel (drivers, FFI, estructuras de datos custom) usa `unsafe` de forma **explícita y aislada**, lo que facilita auditorías de seguridad.
+95% of code can be safe. The 5% that needs low-level operations (drivers, FFI, custom data structures) uses `unsafe` in an **explicit and isolated** way, which makes security audits easier.
 
 ```c
-// El unsafe está aislado y es fácil de auditar:
+// The unsafe is isolated and easy to audit:
 unsafe {
-    // Solo este bloque necesita revisión manual
-    int* unsafe mem = mmap_personalizado();
-    *mem = inicializar();
+    // Only this block needs manual review
+    int* unsafe mem = custom_mmap();
+    *mem = initialize();
 }
-// El resto del código es verificado automáticamente
+// The rest of the code is verified automatically
 ```
 
 ---
 
-## 9. Genéricos
+## 9. Generics
 
-Ferrum soporta funciones y structs genéricos con sintaxis similar a C++.
+Ferrum supports generic functions and structs with syntax similar to C++.
 
-### Funciones genéricas
+### Generic functions
 
 ```c
-// Función genérica — T es el tipo parametrizado
-T maximo<T>(T a, T b) {
+// Generic function — T is the type parameter
+T maximum<T>(T a, T b) {
     if (a > b) return a;
     return b;
 }
 
 int main() {
-    int   res_int   = maximo<int>(3, 7);       // T = int
-    float res_float = maximo<float>(1.5, 2.3); // T = float
+    int   res_int   = maximum<int>(3, 7);       // T = int
+    float res_float = maximum<float>(1.5, 2.3); // T = float
 }
 ```
 
-### Structs genéricos
+### Generic structs
 
 ```c
-// Par genérico — A y B son tipos arbitrarios
-struct Par<A, B> {
-    A primero;
-    B segundo;
+// Generic pair — A and B are arbitrary types
+struct Pair<A, B> {
+    A first;
+    B second;
 }
 
-// Uso:
-Par<int, float> punto;
+// Usage:
+Pair<int, float> point;
 ```
 
-### Estado actual
+### Current status
 
-Los genéricos son **verificados en tiempo de compilación** (type checker). La monomorphización (generación de código LLVM por cada instanciación) es trabajo en progreso — versión 0.3.
+Generics are **checked at compile time** (type checker). Monomorphization (generating LLVM code per instantiation) is work in progress — version 0.3.
 
 ---
 
 ## 10. Structs
 
-### Declaración
+### Declaration
 
 ```c
-struct Punto {
+struct Point {
     int x;
     int y;
 }
 
-struct Rectangulo {
-    Punto origen;
-    int ancho;
-    int alto;
+struct Rectangle {
+    Point origin;
+    int width;
+    int height;
 }
 ```
 
-### Structs y ownership
+### Structs and ownership
 
 ```c
 struct Buffer {
-    int* datos;    // el struct es dueño de esta memoria
-    int  tamanio;
+    int* data;    // the struct owns this memory
+    int  size;
 }
 
-// Al salir del scope, datos se libera automáticamente
+// When leaving scope, data is freed automatically
 Buffer buf;
-buf.datos = new int(1024);
-buf.tamanio = 1024;
-// ← free(buf.datos) insertado aquí automáticamente
+buf.data = new int(1024);
+buf.size = 1024;
+// <- free(buf.data) inserted here automatically
 ```
 
 ---
 
-## 11. Funciones
+## 11. Functions
 
-### Sintaxis básica
+### Basic syntax
 
 ```c
-// Función simple
-int sumar(int a, int b) {
+// Simple function
+int add(int a, int b) {
     return a + b;
 }
 
-// Sin retorno
-void imprimir(int x) {
-    printf("valor: %d\n", x);
+// No return value
+void print(int x) {
+    printf("value: %d\n", x);
 }
 
-// Con puntero como retorno
-int* crear_entero(int valor) {
-    int* p = new int(valor);
-    return move(p);    // transfiere ownership al llamador
+// Returning a pointer
+int* create_int(int value) {
+    int* p = new int(value);
+    return move(p);    // transfers ownership to the caller
 }
 ```
 
-### Funciones unsafe
+### Unsafe functions
 
 ```c
-// Función que trabaja con raw pointers
-unsafe int* leer_memoria_directa(int* unsafe addr) {
+// Function that works with raw pointers
+unsafe int* read_memory_direct(int* unsafe addr) {
     return addr;
 }
 ```
 
-### Extern (interop con C/C++)
+### Extern (interop with C/C++)
 
 ```c
 extern "C" {
-    // Declara funciones C externas
-    int funcion_c(int x, int y);
+    // Declare external C functions
+    int c_function(int x, int y);
 }
 
 extern "C++" {
-    // Declara funciones C++ externas
-    void metodo_cpp(void* obj);
+    // Declare external C++ functions
+    void cpp_method(void* obj);
 }
 ```
 
 ---
 
-## 12. Control de Flujo
+## 12. Control Flow
 
 ### if / else
 
 ```c
 if (x > 0) {
-    printf("positivo\n");
+    printf("positive\n");
 } else if (x < 0) {
-    printf("negativo\n");
+    printf("negative\n");
 } else {
-    printf("cero\n");
+    printf("zero\n");
 }
 ```
 
@@ -509,15 +511,15 @@ while (i < 10) {
 
 ### for
 
-Ferrum acepta ambas formas — con declaración (Ferrum) o con expresión (C):
+Ferrum accepts both forms — with declaration (Ferrum style) or with expression (C style):
 
 ```c
-// Estilo Ferrum — declara la variable en el for
+// Ferrum style — declares variable in the for
 for (int i = 0; i < 10; i = i + 1) {
     printf("%d\n", i);
 }
 
-// Estilo C — variable declarada antes
+// C style — variable declared before
 int i;
 for (i = 0; i < 10; i = i + 1) {
     printf("%d\n", i);
@@ -526,29 +528,29 @@ for (i = 0; i < 10; i = i + 1) {
 
 ---
 
-## 13. Importaciones e Interoperabilidad con C/C++
+## 13. Imports and C/C++ Interoperability
 
-### Formas de importar
+### Import forms
 
 ```c
-// Estilo C (preprocessor) — aceptado por Ferrum
+// C style (preprocessor) — accepted by Ferrum
 #include <stdio.h>
 #include <stdlib.h>
-#include "mi_header.h"
+#include "my_header.h"
 
-// Estilo Ferrum — equivalente exacto
+// Ferrum style — exact equivalent
 import <stdio.h>;
 import <stdlib.h>;
-import "mi_header.feh";
+import "my_header.feh";
 ```
 
-Ambas formas son **100% equivalentes**. Ferrum convierte `#include` a `import` internamente durante la fase de lexing.
+Both forms are **100% equivalent**. Ferrum converts `#include` to `import` internally during the lexing phase.
 
-### Headers de C reconocidos automáticamente
+### Automatically recognized C headers
 
-Cuando se importa alguno de estos headers, Ferrum pre-registra las funciones en el type checker:
+When one of these headers is imported, Ferrum pre-registers the functions in the type checker:
 
-| Header | Funciones registradas |
+| Header | Registered functions |
 |--------|----------------------|
 | `<stdio.h>` | `printf`, `scanf`, `puts`, `fprintf`, `fopen`, `fclose` |
 | `<stdlib.h>` | `malloc`, `free`, `exit`, `atoi`, `rand` |
@@ -558,114 +560,114 @@ Cuando se importa alguno de estos headers, Ferrum pre-registra las funciones en 
 ### Extern blocks
 
 ```c
-// Declarar funciones C existentes
+// Declare existing C functions
 extern "C" {
-    int mi_funcion_c(int x);
-    void otra_funcion(char* str);
+    int my_c_function(int x);
+    void other_function(char* str);
 }
 
-// Declarar funciones C++ existentes
+// Declare existing C++ functions
 extern "C++" {
-    void metodo_de_clase(void* obj, int param);
+    void class_method(void* obj, int param);
 }
 ```
 
 ---
 
-## 14. Pipeline del Compilador
+## 14. Compiler Pipeline
 
 ```
-archivo.fe (o archivo con #include / import)
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  LEXER                                  │
-│  • Tokeniza el código fuente            │
-│  • Convierte #include → import          │
-│  • Reconoce lifetimes ('a)              │
-│  • Reconoce :: y tokens de Ferrum       │
-└──────────────────┬──────────────────────┘
-                   │ tokens
-                   ▼
-┌─────────────────────────────────────────┐
-│  PARSER                                 │
-│  • Construye el AST                     │
-│  • Parsea genéricos <T, U>              │
-│  • Parsea lifetimes en tipos            │
-│  • Parsea bloques unsafe                │
-└──────────────────┬──────────────────────┘
-                   │ AST
-                   ▼
-┌─────────────────────────────────────────┐
-│  TYPE CHECKER (Sema)                    │
-│  • Infiere tipos de expresiones         │
-│  • Verifica firmas de funciones         │
-│  • Resuelve parámetros genéricos        │
-│  • Detecta errores de tipos             │
-└──────────────────┬──────────────────────┘
-                   │ AST con tipos
-                   ▼
-┌─────────────────────────────────────────┐
-│  BORROW CHECKER                         │
-│  • Verifica ownership y moves           │
-│  • Verifica reglas de borrows           │
-│  • Detecta dangling borrows             │
-│  • Aísla unsafe                         │
-│  • Rastrea lifetimes por scope          │
-└──────────────────┬──────────────────────┘
-                   │ AST verificado
-                   ▼
-┌─────────────────────────────────────────┐
-│  CODEGEN (LLVM IR)                      │
-│  • Genera LLVM IR                       │
-│  • Inserta free() al final de scope     │
-│  • Maneja move como transferencia       │
-│  • Borrows = punteros en IR             │
-└──────────────────┬──────────────────────┘
-                   │ LLVM IR (.ll)
-                   ▼
-┌─────────────────────────────────────────┐
-│  BACKEND (llc + gcc)                    │
-│  • llc: IR → objeto (.o)               │
-│  • gcc: objeto → binario               │
-└──────────────────┬──────────────────────┘
-                   │
-                   ▼
-              binario ejecutable
+file.fe (or file with #include / import)
+    |
+    v
++-----------------------------------------+
+|  LEXER                                  |
+|  * Tokenizes the source code            |
+|  * Converts #include -> import          |
+|  * Recognizes lifetimes ('a)            |
+|  * Recognizes :: and Ferrum tokens      |
++------------------+----------------------+
+                   | tokens
+                   v
++-----------------------------------------+
+|  PARSER                                 |
+|  * Builds the AST                       |
+|  * Parses generics <T, U>              |
+|  * Parses lifetimes in types            |
+|  * Parses unsafe blocks                 |
++------------------+----------------------+
+                   | AST
+                   v
++-----------------------------------------+
+|  TYPE CHECKER (Sema)                    |
+|  * Infers expression types              |
+|  * Verifies function signatures         |
+|  * Resolves generic parameters          |
+|  * Detects type errors                  |
++------------------+----------------------+
+                   | typed AST
+                   v
++-----------------------------------------+
+|  BORROW CHECKER                         |
+|  * Verifies ownership and moves         |
+|  * Verifies borrow rules                |
+|  * Detects dangling borrows             |
+|  * Isolates unsafe                      |
+|  * Tracks lifetimes per scope           |
++------------------+----------------------+
+                   | verified AST
+                   v
++-----------------------------------------+
+|  CODEGEN (LLVM IR)                      |
+|  * Generates LLVM IR                    |
+|  * Inserts free() at scope end          |
+|  * Handles move as transfer             |
+|  * Borrows = pointers in IR             |
++------------------+----------------------+
+                   | LLVM IR (.ll)
+                   v
++-----------------------------------------+
+|  BACKEND (llc + gcc)                    |
+|  * llc: IR -> object (.o)              |
+|  * gcc: object -> binary               |
++------------------+----------------------+
+                   |
+                   v
+            executable binary
 ```
 
-### Uso del compilador
+### Compiler usage
 
 ```bash
-# Compilar a binario
-./build/ferrumc archivo.fe -o mi_programa
+# Compile to binary
+./build/ferrumc file.fe -o my_program
 
-# Solo ver el LLVM IR generado
-./build/ferrumc archivo.fe --emit-ir
+# View the generated LLVM IR only
+./build/ferrumc file.fe --emit-ir
 
-# Ejecutar
-./mi_programa
+# Run
+./my_program
 ```
 
 ---
 
-## 15. Errores del Compilador
+## 15. Compiler Errors
 
-Ferrum usa códigos de error con el formato `E####`:
+Ferrum uses error codes with the format `E####`:
 
-| Código | Nombre | Descripción |
-|--------|--------|-------------|
-| `E0382` | UseAfterMove | Uso de variable después de `move()` |
-| `E0502` | MutableBorrowConflict | Borrow mutable cuando ya hay borrow inmutable (o viceversa) |
-| `E0505` | UseAfterFree | Uso de puntero después de liberar |
-| `E0596` | MutateWhileBorrowed | Modificar variable que tiene borrows activos |
-| `E0597` | BorrowOutlivesOwner | Borrow que vive más que el valor que presta |
-| `E0133` | UnsafeOutsideUnsafeBlock | Puntero `unsafe` fuera de bloque `unsafe {}` |
+| Code | Name | Description |
+|------|------|-------------|
+| `E0382` | UseAfterMove | Use of variable after `move()` |
+| `E0502` | MutableBorrowConflict | Mutable borrow when immutable borrow exists (or vice versa) |
+| `E0505` | UseAfterFree | Use of pointer after it has been freed |
+| `E0596` | MutateWhileBorrowed | Modifying a variable that has active borrows |
+| `E0597` | BorrowOutlivesOwner | Borrow lives longer than the value it borrows from |
+| `E0133` | UnsafeOutsideUnsafeBlock | `unsafe` pointer outside an `unsafe {}` block |
 
-### Ejemplo de mensaje de error
+### Example error message
 
 ```
-error[E0382] line 8: use of moved value 'limite'
+error[E0382] line 8: use of moved value 'limit'
 1 borrow error(s).
 
 Compilation failed.
@@ -673,14 +675,14 @@ Compilation failed.
 
 ---
 
-## 16. Comparación C vs Ferrum
+## 16. C vs Ferrum Comparison
 
-### El mismo programa — dos perspectivas
+### The same program — two perspectives
 
 ```c
-// ══════════════════════════════════════════════════════
-// VERSIÓN C — funciona, pero sin protección
-// ══════════════════════════════════════════════════════
+// ======================================================
+// C VERSION — works, but no protection
+// ======================================================
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -688,60 +690,60 @@ int main() {
     int* p = malloc(sizeof(int));
     *p = 42;
 
-    int* q = p;          // q y p apuntan al mismo lugar
-    free(p);             // p liberado
+    int* q = p;          // q and p point to the same location
+    free(p);             // p freed
     printf("%d\n", *q);  // USE-AFTER-FREE — undefined behavior
     free(q);             // DOUBLE FREE — crash
 
     return 0;
 }
-// C compila esto sin ningún warning. Explota en runtime.
+// C compiles this without any warning. Crashes at runtime.
 
 
-// ══════════════════════════════════════════════════════
-// VERSIÓN FERRUM — mismo código, con protección
-// ══════════════════════════════════════════════════════
+// ======================================================
+// FERRUM VERSION — same code, with protection
+// ======================================================
 #include <stdio.h>
 
 int main() {
     int* p = new int(42);
 
-    int* q = move(p);    // q toma ownership — p queda inválido
-    printf("%d\n", *q);  // OK — q es el dueño
+    int* q = move(p);    // q takes ownership — p is now invalid
+    printf("%d\n", *q);  // OK — q is the owner
 
     // printf("%d\n", *p); // error[E0382]: use of moved value 'p'
-    //                     // Ferrum RECHAZA esto en compilación
+    //                     // Ferrum REJECTS this at compile time
 
-    // free(q) insertado automáticamente aquí
+    // free(q) inserted automatically here
     return 0;
 }
-// Ferrum detecta el bug en compilación. Cero runtime crashes por esto.
+// Ferrum catches the bug at compile time. Zero runtime crashes from this.
 ```
 
-### Resumen de diferencias
+### Summary of differences
 
-| Característica | C | Ferrum |
-|----------------|---|--------|
-| Sintaxis | `int x = 0;` | `int x = 0;` ← **igual** |
-| `#include` | `#include <stdio.h>` | `#include <stdio.h>` ← **igual** |
-| Memoria manual | `malloc` / `free` | `new` / `free automático` |
-| Punteros seguros | No | `int& p`, `int&mut p` |
-| Use-after-free | Runtime crash | Error de compilación |
-| Double free | Runtime crash | Error de compilación |
-| Data races | Runtime (undefined) | Error de compilación |
-| Punteros raw | Por defecto | Solo en `unsafe {}` |
-| Genéricos | No (solo macros/void*) | `T funcion<T>(T x)` |
-| Lifetimes | No | Inferidos automáticamente |
+| Feature | C | Ferrum |
+|---------|---|--------|
+| Syntax | `int x = 0;` | `int x = 0;` <- **identical** |
+| `#include` | `#include <stdio.h>` | `#include <stdio.h>` <- **identical** |
+| Manual memory | `malloc` / `free` | `new` / automatic free |
+| Safe pointers | No | `int& p`, `int&mut p` |
+| Use-after-free | Runtime crash | Compile-time error |
+| Double free | Runtime crash | Compile-time error |
+| Data races | Runtime (undefined) | Compile-time error |
+| Raw pointers | Default | Only in `unsafe {}` |
+| Generics | No (macros/void* only) | `T func<T>(T x)` |
+| Lifetimes | No | Inferred automatically |
 
 ---
 
-## Extensiones de Archivo
+## File Extensions
 
-| Extensión | Uso |
+| Extension | Use |
 |-----------|-----|
-| `.fe` | Código fuente Ferrum |
-| `.feh` | Headers Ferrum (equivalente a `.h` de C) |
+| `.fe` | Ferrum source code |
+| `.feh` | Ferrum headers (equivalent to C's `.h`) |
 
 ---
 
-*Ferrum Compiler v0.2 — construido con LLVM 18*
+*Ferrum Compiler v0.2 — built with LLVM 18*
