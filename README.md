@@ -1,71 +1,75 @@
 # Ferrum
 
-(Tengo 11 años y lo hice con Claude Code, cualquier fallo, ponganlo en el GitHub o por mail al tomy.martin.grinberg@gmail.com. Esto esta hecho sin fines de lucro)
+(I'm 11 years old and I built this with Claude Code. For any issues, open one on GitHub or email me at tomy.martin.grinberg@gmail.com. This is non-profit.)
+
+This is licensed under the GNU GPL v3 https://github.com/tomymartingrinberg-cpu/ferrum/blob/main/LICENSE
 
 Esto esta bajo la GNU GPL v3 https://github.com/tomymartingrinberg-cpu/ferrum/blob/main/LICENSE
 
 **Syntax: C | Safety: compile-time checked | Ecosystem: C++**
 
-Ferrum es un lenguaje de programación de sistemas que toma la sintaxis de C y le agrega verificaciones de seguridad de memoria en tiempo de compilación. Si el programa compila, no hay use-after-free, double free, ni dangling pointers.
+Ferrum is a systems programming language that takes C's syntax and adds compile-time memory safety checks. If the program compiles, there are no use-after-free, double free, or dangling pointer bugs.
 
 ```c
 #include <stdio.h>
 
 int main() {
     int* p = new int(42);      // heap allocation
-    int* q = move(p);          // transfiere ownership — p queda inválido
+    int* q = move(p);          // transfers ownership — p is now invalid
 
     printf("q = %d\n", *q);   // OK
     // printf("%d\n", *p);     // error[E0382]: use of moved value 'p'
-                               // el compilador rechaza esto
+                               // the compiler rejects this
     return 0;
-    // free(q) insertado automáticamente
+    // free(q) inserted automatically
 }
 ```
 
+> Also available in: [Español](README.es.md)
+
 ---
 
-## Por qué Ferrum
+## Why Ferrum
 
-C es rápido y simple, pero no protege al programador de errores de memoria. Ferrum resuelve eso sin cambiar la sintaxis ni agregar un garbage collector.
+C is fast and simple, but it doesn't protect the programmer from memory errors. Ferrum fixes that without changing the syntax or adding a garbage collector.
 
 | Bug | C | Ferrum |
 |-----|---|--------|
-| Use-after-free | Crash en runtime | Error de compilación |
-| Double free | Crash en runtime | Error de compilación |
-| Use-after-move | Undefined behavior | Error de compilación |
-| Dangling borrow | Acceso inválido | Error de compilación |
-| Raw pointer sin control | Sin protección | Solo dentro de `unsafe {}` |
+| Use-after-free | Runtime crash | Compile-time error |
+| Double free | Runtime crash | Compile-time error |
+| Use-after-move | Undefined behavior | Compile-time error |
+| Dangling borrow | Invalid memory access | Compile-time error |
+| Uncontrolled raw pointer | No protection | Only inside `unsafe {}` |
 
 ---
 
-## Características
+## Features
 
-- **C compatible** — todo código C válido es código Ferrum válido
-- **`#include` e `import`** — ambas formas son aceptadas
-- **Ownership y move semantics** — `new`, `move()`, free automático al salir del scope
-- **Borrow checker** — `int& p` (inmutable), `int&mut p` (mutable), reglas en compilación
-- **Lifetimes** — anotaciones `'a` inferidas automáticamente en la mayoría de los casos
-- **Unsafe explícito** — `unsafe {}` aísla el código de bajo nivel
-- **Genéricos** — `T funcion<T>(T x)`, `struct Par<A, B>`
-- **Compila a binario nativo** — via LLVM 18
+- **C compatible** — all valid C code is valid Ferrum code
+- **`#include` and `import`** — both forms are accepted
+- **Ownership and move semantics** — `new`, `move()`, automatic free when leaving scope
+- **Borrow checker** — `int& p` (immutable), `int&mut p` (mutable), enforced at compile time
+- **Lifetimes** — `'a` annotations, automatically inferred in most cases
+- **Explicit unsafe** — `unsafe {}` isolates low-level code
+- **Generics** — `T func<T>(T x)`, `struct Pair<A, B>`
+- **Compiles to native binary** — via LLVM 18
 
 ---
 
-## Instalación
+## Installation
 
-### Requisitos
+### Requirements
 
-- `g++` con C++20
+- `g++` with C++20
 - LLVM 18 (`llvm-config`, `llc`)
-- `gcc` (para linkear)
+- `gcc` (for linking)
 
 ```bash
 # Ubuntu / Debian
 sudo apt install llvm-18 llvm-18-dev gcc g++ build-essential
 ```
 
-### Compilar el compilador
+### Build the compiler
 
 ```bash
 git clone https://github.com/tomymartingrinberg-cpu/ferrum
@@ -73,52 +77,52 @@ cd ferrum
 bash build.sh
 ```
 
-Esto produce `build/ferrumc`.
+This produces `build/ferrumc`.
 
 ---
 
-## Uso
+## Usage
 
 ```bash
-# Compilar un archivo .fe a binario
-./build/ferrumc archivo.fe -o mi_programa
+# Compile a .fe file to a binary
+./build/ferrumc file.fe -o my_program
 
-# Ver el LLVM IR generado
-./build/ferrumc archivo.fe --emit-ir
+# View the generated LLVM IR
+./build/ferrumc file.fe --emit-ir
 
-# Ejecutar
-./mi_programa
+# Run
+./my_program
 ```
 
 ---
 
-## Ejemplos
+## Examples
 
-### Hola mundo (estilo C)
+### Hello world (C style)
 
 ```c
 #include <stdio.h>
 
 int main() {
-    printf("Hola desde Ferrum!\n");
+    printf("Hello from Ferrum!\n");
     return 0;
 }
 ```
 
-### Ownership y move
+### Ownership and move
 
 ```c
 #include <stdio.h>
 
 int main() {
-    int* a = new int(100);   // a es dueño
-    int* b = move(a);        // b toma el ownership
+    int* a = new int(100);   // a is the owner
+    int* b = move(a);        // b takes ownership
 
     printf("%d\n", *b);      // OK
     // *a                    // error[E0382]: use of moved value 'a'
 
     return 0;
-    // free(b) automático
+    // free(b) automatic
 }
 ```
 
@@ -130,12 +134,12 @@ int main() {
 int main() {
     int x = 42;
 
-    int& leer = &x;          // borrow inmutable — solo lectura
-    int&mut editar = &mut x; // borrow mutable — lectura y escritura
+    int& read_x  = &x;       // immutable borrow — read only
+    int&mut edit = &mut x;   // mutable borrow — read and write
 
-    // int& otro = &x;       // error[E0502]: x ya tiene borrow mutable
+    // int& other = &x;      // error[E0502]: x already has a mutable borrow
 
-    *editar = 99;
+    *edit = 99;
     printf("%d\n", x);       // 99
     return 0;
 }
@@ -149,66 +153,66 @@ int main() {
 int main() {
     int x = 10;
 
-    // int* unsafe p = &x;   // error[E0133]: fuera de unsafe block
+    // int* unsafe p = &x;   // error[E0133]: outside unsafe block
 
     unsafe {
-        int* unsafe p = &x;  // OK dentro de unsafe
+        int* unsafe p = &x;  // OK inside unsafe
         printf("%d\n", *p);
     }
     return 0;
 }
 ```
 
-### Genéricos
+### Generics
 
 ```c
 #include <stdio.h>
 
-int maximo<T>(T a, T b) {
+int maximum<T>(T a, T b) {
     if (a > b) return a;
     return b;
 }
 
 int main() {
-    printf("%d\n", maximo<int>(3, 7));     // 7
+    printf("%d\n", maximum<int>(3, 7));    // 7
     return 0;
 }
 ```
 
 ---
 
-## Errores del compilador
+## Compiler errors
 
-| Código | Descripción |
-|--------|-------------|
-| `E0382` | Uso de variable después de `move()` |
-| `E0502` | Conflicto de borrows (mutable + inmutable) |
-| `E0505` | Uso de puntero después de liberar |
-| `E0596` | Mutación con borrow activo |
-| `E0597` | Borrow que vive más que el valor que presta |
-| `E0133` | Puntero `unsafe` fuera de bloque `unsafe {}` |
+| Code | Description |
+|------|-------------|
+| `E0382` | Use of variable after `move()` |
+| `E0502` | Borrow conflict (mutable + immutable) |
+| `E0505` | Use of pointer after free |
+| `E0596` | Mutation while borrow is active |
+| `E0597` | Borrow outlives the value it borrows from |
+| `E0133` | `unsafe` pointer outside `unsafe {}` block |
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
 ferrum/
 ├── include/ferrum/
-│   ├── Token.h          # Tokens del lenguaje
-│   ├── Lexer.h          # Analizador léxico
-│   ├── AST.h            # Árbol de sintaxis abstracta
+│   ├── Token.h          # Language tokens
+│   ├── Lexer.h          # Lexer
+│   ├── AST.h            # Abstract syntax tree
 │   ├── Parser.h         # Parser
-│   ├── TypeChecker.h    # Sistema de tipos (Sema)
-│   ├── BorrowChecker.h  # Verificador de ownership
-│   └── Codegen.h        # Generador de LLVM IR
+│   ├── TypeChecker.h    # Type system (Sema)
+│   ├── BorrowChecker.h  # Ownership verifier
+│   └── Codegen.h        # LLVM IR generator
 ├── src/
 │   ├── lexer/
 │   ├── parser/
 │   ├── sema/
 │   ├── borrow/
 │   ├── codegen/
-│   └── driver/main.cpp  # Punto de entrada del compilador
+│   └── driver/main.cpp  # Compiler entry point
 ├── tests/
 │   ├── hello.fe
 │   ├── counter.fe
@@ -216,13 +220,13 @@ ferrum/
 │   ├── test_lexer.cpp
 │   └── test_borrow.cpp
 ├── docs/
-│   └── SPEC.md          # Especificación completa del lenguaje
-└── build.sh             # Script de compilación
+│   └── SPEC.md          # Full language specification
+└── build.sh             # Build script
 ```
 
 ---
 
-## Pipeline del compilador
+## Compiler pipeline
 
 ```
 .fe / .c source
@@ -231,26 +235,26 @@ ferrum/
    Lexer          (#include → import, lifetimes 'a, tokens)
       │
       ▼
-   Parser         (AST, genéricos, unsafe blocks)
+   Parser         (AST, generics, unsafe blocks)
       │
       ▼
-   TypeChecker    (inferencia de tipos, genéricos, C headers)
+   TypeChecker    (type inference, generics, C headers)
       │
       ▼
    BorrowChecker  (ownership, moves, borrows, lifetimes, unsafe)
       │
       ▼
-   Codegen        (LLVM IR, free() automático por scope)
+   Codegen        (LLVM IR, automatic free() per scope)
       │
       ▼
-   llc + gcc      (binario nativo)
+   llc + gcc      (native binary)
 ```
 
 ---
 
-## Documentación completa
+## Full documentation
 
-Ver [`docs/SPEC.md`](docs/SPEC.md) para la especificación completa del lenguaje.
+See [`docs/SPEC.md`](docs/SPEC.md) for the full language specification.
 
 ---
 
