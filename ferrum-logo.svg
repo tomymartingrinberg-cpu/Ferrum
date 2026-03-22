@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 460" width="400" height="460">
+  <defs>
+    <!-- Main hex gradient (steel blue-gray like C logo but iron-toned) -->
+    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#4a5c70"/>
+      <stop offset="50%"  stop-color="#2c3e52"/>
+      <stop offset="100%" stop-color="#1a2a38"/>
+    </linearGradient>
+
+    <!-- Edge highlight gradient -->
+    <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#7a9ab5"/>
+      <stop offset="100%" stop-color="#2a3a4a"/>
+    </linearGradient>
+
+    <!-- Fe text gradient (white/silver like C logo) -->
+    <linearGradient id="feGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="60%"  stop-color="#ddeeff"/>
+      <stop offset="100%" stop-color="#aabccc"/>
+    </linearGradient>
+
+    <!-- Rust accent color -->
+    <linearGradient id="rustGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#c04818"/>
+      <stop offset="50%"  stop-color="#e86030"/>
+      <stop offset="100%" stop-color="#c04818"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+
+    <!-- Subtle text glow -->
+    <filter id="feGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ══ Outer hex (border/shadow layer) ══
+       Pointy-top hexagon, like the C lang logo orientation
+       Center: 200,215  radius: 185 -->
+  <polygon
+    points="200,30 360,122.5 360,307.5 200,400 40,307.5 40,122.5"
+    fill="#0f1c28"
+    filter="url(#shadow)"
+  />
+
+  <!-- ══ Main hex body ══ -->
+  <polygon
+    points="200,30 360,122.5 360,307.5 200,400 40,307.5 40,122.5"
+    fill="url(#hexGrad)"
+  />
+
+  <!-- ══ Border stroke (bright top-left, dark bottom-right) ══ -->
+  <!-- Top-left bright edges -->
+  <polyline
+    points="200,34 356,125 356,177"
+    fill="none" stroke="#7090aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+  />
+  <!-- Bottom-right dark edges -->
+  <polyline
+    points="356,253 356,306 200,396 44,306 44,125 200,34"
+    fill="none" stroke="#1e3040" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+  />
+
+  <!-- ══ Rust accent stripe (horizontal, clipped to hex) ══ -->
+  <clipPath id="hexClip">
+    <polygon points="200,30 360,122.5 360,307.5 200,400 40,307.5 40,122.5"/>
+  </clipPath>
+  <rect x="0" y="208" width="400" height="6"
+        fill="url(#rustGrad)" clip-path="url(#hexClip)" opacity="0.9"/>
+
+  <!-- ══ "Fe" — main symbol ══
+       Big, bold, centered — similar weight to the C in the C logo -->
+  <text
+    x="200"
+    y="262"
+    font-family="'Arial Black', 'Arial', sans-serif"
+    font-size="168"
+    font-weight="900"
+    text-anchor="middle"
+    fill="url(#feGrad)"
+    filter="url(#feGlow)"
+    letter-spacing="-6"
+  >Fe</text>
+
+  <!-- ══ Thin separator line ══ -->
+  <line x1="80" y1="318" x2="320" y2="318"
+        stroke="#3a5a70" stroke-width="1.2" clip-path="url(#hexClip)"/>
+
+  <!-- ══ "FERRUM" label inside hex ══ -->
+  <text
+    x="200"
+    y="358"
+    font-family="'Arial', 'Helvetica', sans-serif"
+    font-size="28"
+    font-weight="700"
+    letter-spacing="11"
+    text-anchor="middle"
+    fill="#6a8a9a"
+  >FERRUM</text>
+
+  <!-- ══ Wordmark below hex ══ -->
+  <text
+    x="200"
+    y="438"
+    font-family="'Arial', 'Helvetica', sans-serif"
+    font-size="14"
+    font-weight="400"
+    letter-spacing="5"
+    text-anchor="middle"
+    fill="#3a5060"
+  >PROGRAMMING LANGUAGE</text>
+</svg>
