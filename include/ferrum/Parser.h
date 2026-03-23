@@ -22,6 +22,10 @@ private:
     std::vector<Token> tokens;
     size_t pos = 0;
 
+    // Recursion depth guard: prevents stack overflow on deeply nested input.
+    int nestingDepth = 0;
+    static constexpr int MAX_NESTING_DEPTH = 512;
+
     // ── Token helpers ──────────────────────────────────────────
     Token& peek(int offset = 0);
     Token& advance();

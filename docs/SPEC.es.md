@@ -1,4 +1,4 @@
-# Especificación del Lenguaje Ferrum v0.2
+# Especificación del Lenguaje Ferrum v0.3
 
 > **Syntax: C | Safety: compile-time checked | Ecosystem: C++**
 
@@ -400,7 +400,7 @@ Par<int, float> punto;
 
 ### Estado actual
 
-Los genéricos son **verificados en tiempo de compilación** (type checker). La monomorphización (generación de código LLVM por cada instanciación) es trabajo en progreso — versión 0.3.
+Los genéricos son **verificados en tiempo de compilación** (type checker). La monomorphización (generación de código LLVM por cada instanciación) es trabajo en progreso.
 
 ---
 
@@ -746,4 +746,4 @@ int main() {
 
 ---
 
-*Ferrum Compiler v0.2 — construido con LLVM 18*
+*Ferrum-language Compiler v0.3 — construido con LLVM 18*

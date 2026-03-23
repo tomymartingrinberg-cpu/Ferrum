@@ -344,6 +344,14 @@ void Codegen::genStmt(const Stmt& stmt, llvm::Function* func) {
     case Stmt::Kind::Return: {
         llvm::Value* retVal = nullptr;
         if (stmt.expr) retVal = genExpr(*stmt.expr, func);
+        // If returning a heap-owned variable, transfer ownership OUT before
+        // emitCleanupAll runs — otherwise the variable gets free()'d and
+        // the returned pointer is a dangling pointer (use-after-free).
+        if (stmt.expr && stmt.expr->kind == Expr::Kind::Ident) {
+            auto* info = lookupVar(stmt.expr->name);
+            if (info && info->isHeap && !info->isMoved)
+                info->isMoved = true;
+        }
         emitCleanupAll(func);
         if (retVal)
             builder->CreateRet(retVal);

@@ -1,4 +1,4 @@
-# Ferrum Language Specification v0.2
+# Ferrum Language Specification v0.3
 
 > **Syntax: C | Safety: compile-time checked | Ecosystem: C++**
 
@@ -400,7 +400,7 @@ Pair<int, float> point;
 
 ### Current status
 
-Generics are **checked at compile time** (type checker). Monomorphization (generating LLVM code per instantiation) is work in progress — version 0.3.
+Generics are **checked at compile time** (type checker). Monomorphization (generating LLVM code per instantiation) is work in progress.
 
 ---
 
@@ -746,4 +746,4 @@ int main() {
 
 ---
 
-*Ferrum Compiler v0.2 — built with LLVM 18*
+*Ferrum-language Compiler v0.3 — built with LLVM 18*

@@ -295,20 +295,29 @@ void BorrowChecker::checkExpr(const Expr& expr) {
             }
         }
         if (expr.inner) checkExpr(*expr.inner);
-        if (expr.lhs) checkExpr(*expr.lhs);
-        if (expr.rhs) checkExpr(*expr.rhs);
         break;
 
     case Expr::Kind::Assign:
+        // Check the rhs value normally.
         if (expr.rhs) checkExpr(*expr.rhs);
-        if (expr.lhs) checkExpr(*expr.lhs);
+        // For the lhs: only validate borrow state.
+        // Do NOT call checkExpr on the lhs ident — assigning TO a moved variable
+        // is valid re-initialization and must not be reported as use-after-move.
         if (expr.lhs && expr.lhs->kind == Expr::Kind::Ident) {
             VarState* s = lookupVar(expr.lhs->name);
-            if (s && (s->borrowCount > 0 || s->hasMutBorrow)) {
-                addError(BorrowError::Kind::MutateWhileBorrowed,
-                    expr.lhs->name, expr.line,
-                    "cannot assign to '" + expr.lhs->name + "' because it is borrowed");
+            if (s) {
+                if (s->borrowCount > 0 || s->hasMutBorrow) {
+                    addError(BorrowError::Kind::MutateWhileBorrowed,
+                        expr.lhs->name, expr.line,
+                        "cannot assign to '" + expr.lhs->name + "' because it is borrowed");
+                }
+                // Re-assignment re-initializes a previously moved variable.
+                if (s->ownership == VarState::Ownership::Moved)
+                    s->ownership = VarState::Ownership::Owned;
             }
+        } else if (expr.lhs) {
+            // Non-ident lhs (e.g. *ptr = val): check it normally.
+            checkExpr(*expr.lhs);
         }
         break;
 

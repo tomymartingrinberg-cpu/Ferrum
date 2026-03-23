@@ -88,10 +88,18 @@ Token Lexer::lexNumber() {
     std::string lex = src.substr(start, pos - start);
     Token tok(isFloat ? TokenKind::FLOAT_LIT : TokenKind::INT_LIT,
               lex, startLine, startCol);
-    if (isFloat)
-        tok.value = std::stod(lex);
-    else
-        tok.value = std::stoll(lex);
+    try {
+        if (isFloat)
+            tok.value = std::stod(lex);
+        else
+            tok.value = std::stoll(lex);
+    } catch (const std::out_of_range&) {
+        return Token(TokenKind::ERROR,
+                     "numeric literal out of range: " + lex, startLine, startCol);
+    } catch (const std::invalid_argument&) {
+        return Token(TokenKind::ERROR,
+                     "invalid numeric literal: " + lex, startLine, startCol);
+    }
     return tok;
 }
 
@@ -174,9 +182,28 @@ Token Lexer::lexIdent() {
 std::vector<Token> Lexer::tokenize() {
     std::vector<Token> tokens;
 
+    // Reject source containing null bytes — they can bypass checks in C APIs
+    // and produce confusing parse errors deep in the pipeline.
+    if (src.find('\0') != std::string::npos) {
+        tokens.push_back(Token(TokenKind::ERROR,
+            "source file contains a null byte", 1, 1));
+        tokens.push_back(Token(TokenKind::EOF_TOK, "", 1, 1));
+        return tokens;
+    }
+
+    // Cap token count to prevent memory exhaustion from pathological input.
+    static constexpr size_t MAX_TOKENS = 1'000'000;
+
     while (true) {
         skipWhitespaceAndComments();
         if (isAtEnd()) break;
+
+        if (tokens.size() >= MAX_TOKENS) {
+            tokens.push_back(Token(TokenKind::ERROR,
+                "source file exceeds token limit (" +
+                std::to_string(MAX_TOKENS) + " tokens)", line, col));
+            break;
+        }
 
         int startLine = line, startCol = col;
         char c = advance();

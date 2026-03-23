@@ -174,6 +174,11 @@ DeclPtr Parser::parseImportDecl() {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 TypeRef Parser::parseType() {
+    if (nestingDepth >= MAX_NESTING_DEPTH)
+        throw error("type too deeply nested (max depth: 512)");
+    nestingDepth++;
+    struct DepthGuard { int& d; ~DepthGuard() { --d; } } guard{nestingDepth};
+
     bool isUnsafe = false;
     if (match(TokenKind::KW_UNSAFE)) isUnsafe = true;
 
@@ -291,6 +296,9 @@ StmtPtr Parser::parseStmt() {
 }
 
 StmtPtr Parser::parseBlock() {
+    if (nestingDepth >= MAX_NESTING_DEPTH)
+        throw error("block too deeply nested (max depth: 512)");
+    nestingDepth++;
     auto stmt = std::make_unique<Stmt>();
     stmt->kind = Stmt::Kind::Block;
     stmt->line = peek().line;
@@ -299,6 +307,7 @@ StmtPtr Parser::parseBlock() {
         stmt->stmts.push_back(parseStmt());
     }
     expect(TokenKind::RBRACE, "Expected '}'");
+    nestingDepth--;
     return stmt;
 }
 
@@ -393,7 +402,14 @@ StmtPtr Parser::parseUnsafeBlock() {
 
 // ── Expressions ───────────────────────────────────────────────────────────────
 
-ExprPtr Parser::parseExpr() { return parseAssign(); }
+ExprPtr Parser::parseExpr() {
+    if (nestingDepth >= MAX_NESTING_DEPTH)
+        throw error("expression too deeply nested (max depth: 512)");
+    nestingDepth++;
+    auto result = parseAssign();
+    nestingDepth--;
+    return result;
+}
 
 ExprPtr Parser::parseAssign() {
     auto lhs = parseLogicalOr();

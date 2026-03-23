@@ -256,4 +256,4 @@ Ver [`docs/SPEC.md`](docs/SPEC.md) para la especificación completa del lenguaje
 
 ---
 
-*Ferrum Compiler v0.2 — LLVM 18*
+*Ferrum-language Compiler v0.3 — LLVM 18*

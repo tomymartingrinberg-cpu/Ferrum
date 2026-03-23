@@ -53,12 +53,45 @@ static void printCodegenErrors(const std::vector<ferrum::Codegen::CodegenError>&
         std::cerr << "error[codegen] line " << e.line << ": " << e.message << "\n";
 }
 
+// ─── RAII guard to delete temp files unconditionally ─────────────────────────
+
+struct TempFileGuard {
+    std::vector<std::string> paths;
+    ~TempFileGuard() {
+        for (auto& p : paths) {
+            std::error_code ec;
+            std::filesystem::remove(p, ec);
+        }
+    }
+};
+
 // ─── Compile a single file ────────────────────────────────────────────────────
 
+// Maximum source file size accepted (10 MiB).
+static constexpr std::streamoff MAX_SOURCE_BYTES = 10 * 1024 * 1024;
+
 static int runFile(const std::string& path, bool emitIR, const std::string& outputBin) {
-    // Read source
-    std::ifstream f(path);
+    // Reject paths containing null bytes — they can trick downstream C APIs.
+    if (path.find('\0') != std::string::npos) {
+        std::cerr << "error: invalid input path\n";
+        return 1;
+    }
+
+    // Enforce .fe extension so the compiler can't be silently fed arbitrary files.
+    if (std::filesystem::path(path).extension() != ".fe") {
+        std::cerr << "error: Ferrum-language source files must have the .fe extension\n";
+        return 1;
+    }
+
+    // Read source with a size cap to prevent memory exhaustion.
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
     if (!f) { std::cerr << "Cannot open file: " << path << "\n"; return 1; }
+    std::streamoff fileSize = f.tellg();
+    if (fileSize > MAX_SOURCE_BYTES) {
+        std::cerr << "error: source file too large (max 10 MiB)\n";
+        return 1;
+    }
+    f.seekg(0, std::ios::beg);
     std::ostringstream buf; buf << f.rdbuf();
     std::string src = buf.str();
 
@@ -115,6 +148,13 @@ static int runFile(const std::string& path, bool emitIR, const std::string& outp
         // Write IR to a temp file (include PID to avoid collisions in shared environments)
         std::string pid      = std::to_string(getpid());
         std::string irPath   = "/tmp/ferrum_" + moduleName + "_" + pid + ".ll";
+        std::string objPath  = "/tmp/ferrum_" + moduleName + "_" + pid + ".o";
+
+        // Temp files are deleted on scope exit regardless of success or failure.
+        TempFileGuard tempGuard;
+        tempGuard.paths.push_back(irPath);
+        tempGuard.paths.push_back(objPath);
+
         if (!cg.writeIR(irPath)) {
             std::cerr << "Failed to write IR to " << irPath << "\n";
             return 1;
@@ -122,7 +162,6 @@ static int runFile(const std::string& path, bool emitIR, const std::string& outp
 
         // ── 6. Compile IR → binary using llc + gcc ────────────────────────────
         std::string outPath = outputBin.empty() ? ("./" + moduleName) : outputBin;
-        std::string objPath = "/tmp/ferrum_" + moduleName + "_" + pid + ".o";
 
         // Try clang first, fall back to llc + gcc
         // Paths are shell-quoted to prevent command injection
@@ -157,7 +196,7 @@ static int runFile(const std::string& path, bool emitIR, const std::string& outp
 // ─── REPL ─────────────────────────────────────────────────────────────────────
 
 static void runRepl() {
-    std::cout << "REPL mode. Type Ferrum code, end with a blank line.\n\n";
+    std::cout << "Ferrum-language REPL. Type code, end with a blank line.\n\n";
     while (true) {
         std::string line, src;
         std::cout << "fe> ";
@@ -191,7 +230,7 @@ static void runRepl() {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 int main(int argc, char* argv[]) {
-    std::cout << "Ferrum Compiler v0.2\n";
+    std::cout << "Ferrum-language Compiler v0.3\n";
     std::cout << "Syntax: C | Safety: compile-time checked | Ecosystem: C++\n";
     std::cout << "─────────────────────────────────────────\n";
 
@@ -217,6 +256,13 @@ int main(int argc, char* argv[]) {
 
     if (inputFile.empty()) {
         std::cerr << "Usage: ferrumc <file.fe> [--emit-ir] [-o output]\n";
+        return 1;
+    }
+
+    // Reject null bytes in user-supplied paths before they reach C APIs.
+    if (inputFile.find('\0') != std::string::npos ||
+        (!outputBin.empty() && outputBin.find('\0') != std::string::npos)) {
+        std::cerr << "error: invalid path (contains null byte)\n";
         return 1;
     }
 

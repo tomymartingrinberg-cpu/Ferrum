@@ -102,16 +102,17 @@ std::shared_ptr<FerType> TypeChecker::resolveTypeRef(const TypeRef& ref) {
 }
 
 bool TypeChecker::typesCompatible(const FerType& a, const FerType& b) const {
-    // Generic params are compatible with anything
+    // Generic params are compatible with anything.
     if (a.isGenericParam() || b.isGenericParam()) return true;
-    // Null is compatible with any pointer
-    if (b.kind == FerType::Kind::Void && a.isPointerLike()) return true;
-    if (a.kind == FerType::Kind::Void && b.isPointerLike()) return true;
-    // Numeric promotion
+    // Numeric promotion: int/float/char are interchangeable.
     if (a.isNumeric() && b.isNumeric()) return true;
-    // Pointer types: borrow/borrow-mut/pointer are interchangeable in practice
+    // Pointer types (including borrows).
     if (a.isPointerLike() && b.isPointerLike()) {
+        // A raw pointer with no inner type info is compatible with anything.
         if (!a.inner || !b.inner) return true;
+        // void* (null literal) is compatible with any pointer type.
+        if (a.inner->kind == FerType::Kind::Void ||
+            b.inner->kind == FerType::Kind::Void) return true;
         return typesCompatible(*a.inner, *b.inner);
     }
     return a.kind == b.kind;
