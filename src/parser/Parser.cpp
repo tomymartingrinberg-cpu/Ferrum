@@ -508,42 +508,51 @@ ExprPtr Parser::parseMulDiv() {
 ExprPtr Parser::parseUnary() {
     if (check(TokenKind::BANG) || check(TokenKind::MINUS) ||
         check(TokenKind::STAR) || check(TokenKind::TILDE)) {
+        int eLine = peek().line;
         std::string op = advance().lexeme;
         auto operand = parseUnary();
         auto e = std::make_unique<Expr>();
-        e->kind = Expr::Kind::UnaryOp; e->op = op;
+        e->kind = Expr::Kind::UnaryOp; e->op = op; e->line = eLine;
         e->inner = std::move(operand);
         return e;
     }
     if (check(TokenKind::AMP)) {
+        int eLine = peek().line;
         advance();
         bool mut = match(TokenKind::KW_MUT);
         auto operand = parseUnary();
         auto e = std::make_unique<Expr>();
         e->kind = mut ? Expr::Kind::BorrowMut : Expr::Kind::Borrow;
+        e->line = eLine;
         e->inner = std::move(operand);
         return e;
     }
     if (check(TokenKind::AMP_MUT)) {
+        int eLine = peek().line;
         advance();
         auto operand = parseUnary();
         auto e = std::make_unique<Expr>();
         e->kind = Expr::Kind::BorrowMut;
+        e->line = eLine;
         e->inner = std::move(operand);
         return e;
     }
     if (check(TokenKind::KW_MOVE)) {
+        int eLine = peek().line;
         advance();
         auto operand = parseUnary();
         auto e = std::make_unique<Expr>();
         e->kind = Expr::Kind::Move;
+        e->line = eLine;
         e->inner = std::move(operand);
         return e;
     }
     if (check(TokenKind::KW_NEW)) {
+        int eLine = peek().line;
         advance();
         auto e = std::make_unique<Expr>();
         e->kind = Expr::Kind::New;
+        e->line = eLine;
         e->typeArg = std::make_unique<TypeRef>(parseType());
         expect(TokenKind::LPAREN, "Expected '(' after type in new");
         if (!check(TokenKind::RPAREN)) e->inner = parseExpr();
