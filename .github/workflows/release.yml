@@ -55,7 +55,7 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runner: macos-13
+            runner: macos-12
           - arch: arm64
             runner: macos-14
     steps:
@@ -90,15 +90,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18
-        shell: pwsh
-        run: |
-          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
-          $out = "$env:TEMP\llvm18.exe"
-          Invoke-WebRequest -Uri $url -OutFile $out
-          Start-Process -FilePath $out -ArgumentList "/S" -Wait
-          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
+      # LLVM (any recent version) is pre-installed on windows-2022 runners at
+      # C:\Program Files\LLVM. Use it directly — no install step needed.
       - name: Install cmake + ninja
         run: choco install cmake ninja -y --no-progress
 
