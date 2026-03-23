@@ -106,34 +106,13 @@ jobs:
       - name: Install cmake + ninja
         run: choco install cmake ninja -y --no-progress
 
-      - name: Diagnose LLVM layout and locate cmake dir
-        shell: pwsh
-        run: |
-          Write-Host "=== LLVM_PATH contents ==="
-          if (Test-Path $env:LLVM_PATH) {
-            Get-ChildItem $env:LLVM_PATH | Select-Object Name, LastWriteTime | Format-Table
-          }
-          Write-Host "=== Searching for LLVMConfig.cmake on C:\ ==="
-          $results = Get-ChildItem -Path "C:\" -Recurse -Filter "LLVMConfig.cmake" -ErrorAction SilentlyContinue
-          $results | Select-Object FullName | Format-List
-          if ($results.Count -eq 0) { Write-Host "NOT FOUND ANYWHERE on C:\" }
-          # Use first result found
-          $cfg = $results | Select-Object -First 1
-          if ($cfg) {
-            Write-Host "Using: $($cfg.FullName)"
-            echo "LLVM_CMAKE_DIR=$($cfg.DirectoryName)" >> $env:GITHUB_ENV
-          } else {
-            Write-Error "LLVMConfig.cmake not found on this runner"; exit 1
-          }
-
       - name: Build
         shell: cmd
         run: |
           cmake -B build -G Ninja ^
             -DCMAKE_BUILD_TYPE=Release ^
             -DCMAKE_C_COMPILER="%LLVM_PATH%\bin\clang.exe" ^
-            -DCMAKE_CXX_COMPILER="%LLVM_PATH%\bin\clang++.exe" ^
-            -DLLVM_DIR="%LLVM_CMAKE_DIR%"
+            -DCMAKE_CXX_COMPILER="%LLVM_PATH%\bin\clang++.exe"
           cmake --build build --target ferrumc -j%NUMBER_OF_PROCESSORS%
 
       - name: Package
