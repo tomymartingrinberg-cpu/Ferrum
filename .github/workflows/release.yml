@@ -62,22 +62,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18 (arm64 native)
+      - name: Install LLVM 18 + cmake + ninja (arm64)
         if: matrix.arch == 'arm64'
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18"
 
-      - name: Install LLVM 18 (x86_64 prebuilt)
+      - name: Install cmake + ninja (arm64)
+        if: matrix.arch == 'arm64'
+        run: brew install cmake ninja
+
+      - name: Install LLVM 18 + cmake + ninja (x86_64 via Rosetta)
         if: matrix.arch == 'x86_64'
         run: |
-          curl -L "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-apple-darwin.tar.xz" -o llvm.tar.xz
-          mkdir llvm-x86
-          tar -xf llvm.tar.xz -C llvm-x86 --strip-components=1
-          echo "LLVM_PATH=$(pwd)/llvm-x86" >> $GITHUB_ENV
-
-      - name: Install cmake + ninja
-        run: brew install cmake ninja
+          # macos-14 ships with x86_64 Homebrew at /usr/local
+          arch -x86_64 /usr/local/bin/brew install llvm@18 cmake ninja
+          echo "LLVM_PATH=$(arch -x86_64 /usr/local/bin/brew --prefix llvm@18)" >> $GITHUB_ENV
 
       - name: Build (arm64)
         if: matrix.arch == 'arm64'
@@ -89,17 +89,14 @@ jobs:
           cmake --build build --target ferrumc -j$(sysctl -n hw.logicalcpu)
           strip build/ferrumc
 
-      - name: Build (x86_64 cross)
+      - name: Build (x86_64 via Rosetta)
         if: matrix.arch == 'x86_64'
         run: |
-          cmake -B build -G Ninja \
+          arch -x86_64 cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_DIR="${{ env.LLVM_PATH }}/lib/cmake/llvm" \
-            -DCMAKE_DISABLE_FIND_PACKAGE_LibEdit=TRUE \
-            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-            -DCMAKE_C_FLAGS="-target x86_64-apple-macosx10.15" \
-            -DCMAKE_CXX_FLAGS="-target x86_64-apple-macosx10.15"
-          cmake --build build --target ferrumc -j$(sysctl -n hw.logicalcpu)
+            -DCMAKE_DISABLE_FIND_PACKAGE_LibEdit=TRUE
+          arch -x86_64 cmake --build build --target ferrumc -j$(sysctl -n hw.logicalcpu)
           strip build/ferrumc
 
       - name: Package
