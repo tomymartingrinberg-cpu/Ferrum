@@ -210,9 +210,11 @@
       font-size: .7rem; font-weight: 600; padding: .15rem .5rem;
       border-radius: 999px; letter-spacing: .04em;
     }
-    .badge-recommended { background: #1a3a2a; color: var(--green); }
-    .badge-package     { background: #1e2a3a; color: var(--blue); }
-    .badge-binary      { background: #2a1e3a; color: var(--purple); }
+    .badge-recommended  { background: #1a3a2a; color: var(--green); }
+    .badge-package      { background: #1e2a3a; color: var(--blue); }
+    .badge-binary       { background: #2a1e3a; color: var(--purple); }
+    .badge-review       { background: #2a2a1e; color: var(--yellow); }
+    .badge-coming-soon  { background: #1e1e1e; color: var(--text2); }
 
     /* ── FOOTER ───────────────────────────────────── */
     footer {
@@ -402,67 +404,35 @@
     </div>
 
     <div class="dl-method">
-      <h3>Debian / Ubuntu / Mint <span class="method-badge badge-package">apt</span></h3>
-      <p>Works on any system that uses <code>apt</code> and <code>dpkg</code>.</p>
+      <h3>Snap <span class="method-badge badge-review">under review</span></h3>
+      <p>Submission to the Snap Store is pending review. Will work on any distribution with <code>snapd</code>.</p>
       <div class="code-block">
-        <code>curl -fsSL https://pkg.ferrum-lang.org/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/ferrum.gpg<br>
-echo "deb [signed-by=/etc/apt/keyrings/ferrum.gpg] https://pkg.ferrum-lang.org/apt stable main" | sudo tee /etc/apt/sources.list.d/ferrum.list<br>
-sudo apt update &amp;&amp; sudo apt install ferrumc</code>
+        <code>sudo snap install ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>Fedora / RHEL / CentOS / Rocky <span class="method-badge badge-package">dnf / rpm</span></h3>
-      <p>Works on any RPM-based distribution using <code>dnf</code> or <code>yum</code>.</p>
+      <h3>Flatpak / Flathub <span class="method-badge badge-review">under review</span></h3>
+      <p>Submission to Flathub is pending review.</p>
       <div class="code-block">
-        <code>sudo dnf config-manager --add-repo https://pkg.ferrum-lang.org/rpm/ferrum.repo<br>
-sudo dnf install ferrumc</code>
+        <code>flatpak install flathub org.ferrum_lang.ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>Arch Linux / Manjaro <span class="method-badge badge-package">pacman / AUR</span></h3>
+      <h3>NixOS / nix-env <span class="method-badge badge-review">under review</span></h3>
+      <p>A pull request to nixpkgs is open and under review.</p>
       <div class="code-block">
-        <code>yay -S ferrumc    # via AUR (community-maintained)</code>
+        <code>nix-env -iA nixpkgs.ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>openSUSE <span class="method-badge badge-package">zypper</span></h3>
-      <div class="code-block">
-        <code>sudo zypper addrepo https://pkg.ferrum-lang.org/rpm/ferrum.repo ferrum<br>
-sudo zypper install ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>Snap <span class="method-badge badge-package">snap</span></h3>
-      <p>Works on any distribution with <code>snapd</code> installed (Ubuntu, Fedora, Arch...).</p>
-      <div class="code-block">
-        <code>sudo snap install ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>Flatpak / Flathub <span class="method-badge badge-package">flatpak</span></h3>
-      <p>Runs sandboxed on any distribution with Flatpak support.</p>
-      <div class="code-block">
-        <code>flatpak install flathub org.ferrum_lang.ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>NixOS / nix-env <span class="method-badge badge-package">nix</span></h3>
-      <div class="code-block">
-        <code>nix-env -iA nixpkgs.ferrumc    # or add ferrumc to environment.systemPackages</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
+      <h3>Debian / Ubuntu / Arch / Fedora / openSUSE <span class="method-badge badge-coming-soon">coming soon</span></h3>
+      <p>Native distribution packages (apt, dnf, pacman, zypper) are planned. For now, use the direct download below.</p>
     </div>
 
   </div>
@@ -471,20 +441,17 @@ sudo zypper install ferrumc</code>
   <div id="os-macos" class="os-panel">
 
     <div class="dl-method">
-      <h3>Homebrew <span class="method-badge badge-recommended">Recommended</span></h3>
-      <p>Works on both Intel and Apple Silicon Macs.</p>
+      <h3>MacPorts <span class="method-badge badge-review">under review</span></h3>
+      <p>A port submission is open and under review.</p>
       <div class="code-block">
-        <code>brew tap ferrum-language/tap &amp;&amp; brew install ferrumc</code>
+        <code>sudo port install ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>MacPorts <span class="method-badge badge-package">port</span></h3>
-      <div class="code-block">
-        <code>sudo port install ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
+      <h3>Homebrew <span class="method-badge badge-coming-soon">coming soon</span></h3>
+      <p>A Homebrew formula is planned.</p>
     </div>
 
     <div class="dl-method">
@@ -508,27 +475,19 @@ sudo zypper install ferrumc</code>
   <div id="os-windows" class="os-panel">
 
     <div class="dl-method">
-      <h3>winget <span class="method-badge badge-recommended">Recommended</span></h3>
-      <p>Built into Windows 10/11. No extra tools needed.</p>
+      <h3>winget <span class="method-badge badge-review">under review</span></h3>
+      <p>A manifest has been submitted to the winget-pkgs repository and is under review.</p>
       <div class="code-block">
-        <code>winget install FerumLanguage.ferrumc</code>
+        <code>winget install FerumLanguage.ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>Chocolatey <span class="method-badge badge-package">choco</span></h3>
+      <h3>Chocolatey <span class="method-badge badge-review">under review</span></h3>
+      <p>Package submission is under human review.</p>
       <div class="code-block">
-        <code>choco install ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>Scoop <span class="method-badge badge-package">scoop</span></h3>
-      <div class="code-block">
-        <code>scoop bucket add ferrum https://github.com/Ferrum-Language/scoop-bucket<br>
-scoop install ferrumc</code>
+        <code>choco install ferrumc    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
@@ -547,43 +506,22 @@ scoop install ferrumc</code>
   <div id="os-bsd" class="os-panel">
 
     <div class="dl-method">
-      <h3>FreeBSD — pkg <span class="method-badge badge-recommended">Recommended</span></h3>
+      <h3>FreeBSD — Ports <span class="method-badge badge-review">under review</span></h3>
+      <p>A port submission is open in the FreeBSD ports tree and under review.</p>
       <div class="code-block">
-        <code>pkg install ferrumc</code>
+        <code>cd /usr/ports/lang/ferrumc &amp;&amp; make install clean    # not yet available</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
     </div>
 
     <div class="dl-method">
-      <h3>FreeBSD — Ports <span class="method-badge badge-package">ports</span></h3>
-      <div class="code-block">
-        <code>cd /usr/ports/lang/ferrumc &amp;&amp; make install clean</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
+      <h3>OpenBSD — pkg_add <span class="method-badge badge-coming-soon">coming soon</span></h3>
+      <p>A port submission to <code>ports@openbsd.org</code> is in progress.</p>
     </div>
 
     <div class="dl-method">
-      <h3>OpenBSD — pkg_add <span class="method-badge badge-package">pkg_add</span></h3>
-      <div class="code-block">
-        <code>pkg_add ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>NetBSD — pkgsrc <span class="method-badge badge-package">pkgsrc</span></h3>
-      <div class="code-block">
-        <code>cd /usr/pkgsrc/lang/ferrumc &amp;&amp; make install clean</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
-    </div>
-
-    <div class="dl-method">
-      <h3>DragonFly BSD <span class="method-badge badge-package">dports</span></h3>
-      <div class="code-block">
-        <code>pkg install ferrumc</code>
-        <button class="copy-btn" onclick="copy(this)">Copy</button>
-      </div>
+      <h3>NetBSD / pkgsrc — DragonFly BSD <span class="method-badge badge-coming-soon">coming soon</span></h3>
+      <p>Ports for NetBSD pkgsrc and DragonFly BSD dports are planned.</p>
     </div>
 
     <div class="dl-method">
